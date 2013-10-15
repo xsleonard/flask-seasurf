@@ -4,7 +4,7 @@ import sys
 import unittest
 
 from flask import Flask
-from flask_seasurf import SeaSurf
+from flask_seasurf import SeaSurf, generate_token
 
 
 if sys.version_info[0] < 3:
@@ -35,15 +35,15 @@ class SeaSurfTestCase(unittest.TestCase):
             return 'foo'
 
     def test_generate_token(self):
-        self.assertIsNotNone(self.csrf._generate_token())
+        self.assertIsNotNone(generate_token())
 
     def test_unique_generation(self):
-        token_a = self.csrf._generate_token()
-        token_b = self.csrf._generate_token()
+        token_a = generate_token()
+        token_b = generate_token()
         self.assertNotEqual(token_a, token_b)
 
     def test_token_is_string(self):
-        token = self.csrf._generate_token()
+        token = generate_token()
         self.assertEqual(type(token), str)
 
     def test_exempt_view(self):
@@ -58,7 +58,7 @@ class SeaSurfTestCase(unittest.TestCase):
     def test_https_bad_referer(self):
         with self.app.test_client() as client:
             with client.session_transaction() as sess:
-                token = self.csrf._generate_token()
+                token = generate_token()
 
                 client.set_cookie('www.example.com', self.csrf._csrf_name, token)
                 sess[self.csrf._csrf_name] = token
@@ -75,7 +75,7 @@ class SeaSurfTestCase(unittest.TestCase):
     def test_https_good_referer(self):
         with self.app.test_client() as client:
             with client.session_transaction() as sess:
-                token = self.csrf._generate_token()
+                token = generate_token()
 
                 client.set_cookie('www.example.com', self.csrf._csrf_name, token)
                 sess[self.csrf._csrf_name] = token

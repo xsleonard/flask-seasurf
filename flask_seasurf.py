@@ -57,12 +57,18 @@ def xsrf(app):
     SeaSurf(app)
 
 
-def _same_origin(url1, url2):
+def same_origin(url1, url2):
     '''Determine if two URLs share the same origin.'''
     p1, p2 = urlparse.urlparse(url1), urlparse.urlparse(url2)
     origin1 = p1.scheme, p1.hostname, p1.port
     origin2 = p2.scheme, p2.hostname, p2.port
     return origin1 == origin2
+
+
+def generate_token():
+    '''Generates a token with randomly salted SHA1. Returns a string.'''
+    salt = str(randrange(0, _MAX_CSRF_KEY)).encode('utf-8')
+    return hashlib.sha1(salt).hexdigest()
 
 
 class SeaSurf(object):
@@ -210,7 +216,7 @@ class SeaSurf(object):
 
         csrf_token = session.get(self._csrf_name, None)
         if not csrf_token:
-            setattr(g, self._csrf_name, self._generate_token())
+            setattr(g, self._csrf_name, generate_token())
         else:
             setattr(g, self._csrf_name, csrf_token)
 
@@ -235,7 +241,7 @@ class SeaSurf(object):
                 # header, the browser has already decided that it trusts this domain
                 # otherwise it would have blocked the request before it got here.
                 allowed_referer = request.headers.get('Origin') or request.url_root
-                if not _same_origin(referer, allowed_referer):
+                if not same_origin(referer, allowed_referer):
                     error = REASON_BAD_REFERER % (referer, allowed_referer)
                     error = (error, request.path)
                     self.app.logger.warning('Forbidden (%s): %s' % error)
@@ -280,8 +286,3 @@ class SeaSurf(object):
     def _get_token(self):
         '''Attempts to get a token from the request cookies.'''
         return getattr(g, self._csrf_name, None)
-
-    def _generate_token(self):
-        '''Generates a token with randomly salted SHA1. Returns a string.'''
-        salt = str(randrange(0, _MAX_CSRF_KEY)).encode('utf-8')
-        return hashlib.sha1(salt).hexdigest()
